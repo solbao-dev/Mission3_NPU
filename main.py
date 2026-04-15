@@ -129,4 +129,10 @@ def main():
             print("❌ data.json 파일이 없습니다.")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        print("\n\n👋 [프로그램 종료] 사용자에 의해 강제 종료되었습니다.")
+        print("   안전하게 프로그램을 종료합니다. 다음에 또 봐요 🍒")
+        # 필요하다면 여기서 작업 중인 데이터를 저장(백업)하는 로직을 넣을 수 있어!
+        exit(0)
