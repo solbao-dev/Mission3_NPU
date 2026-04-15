@@ -23,6 +23,18 @@ def get_3x3_input(name):
         else:
             print("❌ 입력 형식 오류: 각 줄에 3개의 숫자를 공백으로 구분해 입력하세요. 다시 입력해주세요.")
 
+# [수정] 라벨 정규화(표준화) 함수
+def normalize_label(label):
+    # 양쪽 공백을 없애고 소문자로 변환해서 비교하기 쉽게 만듦
+    clean_label = str(label).strip().lower()
+    
+    if clean_label == '+' or clean_label == 'cross':
+        return 'Cross'
+    elif clean_label == 'x':
+        return 'X'
+    else:
+        return 'Unknown'
+
 # [2] MAC 연산 함수
 def calculate_mac(filter_matrix, pattern_matrix):
     score = 0
@@ -32,17 +44,14 @@ def calculate_mac(filter_matrix, pattern_matrix):
             score += filter_matrix[i][j] * pattern_matrix[i][j]
     return score
 
-# (누락되었던 보조 함수들 추가)
-def normalize_label(label):
-    return label.strip().lower()
-
+# [수정] MAC 연산 결과 비교 및 판정 함수
 def get_decision(sc_cross, sc_x):
     if sc_cross > sc_x:
-        return "cross"
+        return "Cross"  # 표준 라벨 사용
     elif sc_x > sc_cross:
-        return "x"
+        return "X"      # 표준 라벨 사용
     else:
-        return "unknown"
+        return "Unknown"
 
 # ========= 프로그램 메인 함수 =========
 # 모든 코드를 감싸는 main() 함수를 만들었어!
@@ -102,7 +111,7 @@ def main():
             for p_id, p_info in patterns.items():
                 total_count += 1
                 p_input = p_info['input']
-                p_expected = normalize_label(p_info['expected'])
+                p_expected = normalize_label(p_info['expected']) # 1. 정답 라벨을 Cross 또는 X로 표준화
                 
                 try:
                     parts = p_id.split("_") 
@@ -116,8 +125,10 @@ def main():
                     fail_cases.append(f"{p_id}: {e}")
                     continue
 
-                f_set = filters[size_key]
-                
+                f_set = filters[size_key] # 2. 내부적으로 필터 키를 매칭할 때는 소문자 'cross'와 'x'로 JSON에 접근
+                sc_cross = calculate_mac(f_set['cross'], p_input)
+                sc_x = calculate_mac(f_set['x'], p_input)
+
                 start = time.time()
                 for _ in range(10):
                     sc_cross = calculate_mac(f_set['cross'], p_input)
@@ -126,7 +137,9 @@ def main():
                 
                 performance_stats.append((n_val, elapsed))
                 
-                decision = get_decision(sc_cross, sc_x)
+                decision = get_decision(sc_cross, sc_x) # 3. 판정 결과도 Cross 또는 X로 반환됨
+
+                # 표준화된 p_expected와 decision이 정확히 비교됨!
                 status = "PASS" if decision == p_expected else "FAIL"
                 
                 if status == "PASS": 
