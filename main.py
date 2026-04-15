@@ -3,27 +3,37 @@ import time
 from core.npu_core import normalize_label, calculate_mac, get_decision
 from utils.reporter import print_performance, print_summary
 
-# [1] 키보드 입력받는 함수
+# [1] 키보드 입력받는 함수 (UX 개선 버전)
 def get_3x3_input(name):
-    while True:
-        print(f"\n{name} (3줄 입력, 공백 구분)")
-        matrix = []
-        is_valid = True
-        
-        for i in range(3):
-            try:
-                row = list(map(int, input().split()))
-                if len(row) != 3:
-                    is_valid = False
-            except ValueError:
-                is_valid = False
+    print(f"\n# {name} 입력을 시작합니다 (0 또는 1만 입력 가능, 공백 구분)")
+    matrix = []
+    i = 0
+    
+    while i < 3:  # 3행을 다 채울 때까지 반복
+        try:
+            user_input = input(f"  [{i+1}행 입력]: ").split()
             
+            # [검증 1] 숫자 파싱 실패 확인 (정수가 아니면 ValueError 발생)
+            row = [int(val) for val in user_input]
+            
+            # [검증 2] 열 개수 불일치 확인 (정확히 3개여야 함)
+            if len(row) != 3:
+                print(f"    ❌ [입력 오류] 정확히 3개의 숫자가 필요합니다. (현재 {len(row)}개 입력됨)")
+                continue  # i를 증가시키지 않고 해당 행 다시 시작
+            
+            # [검증 3] 값 범위 확인 (0 또는 1만 허용)
+            if any(val not in [0, 1] for val in row):
+                print(f"    ❌ [값 범위 오류] 0 또는 1만 입력 가능합니다. (잘못된 숫자 포함)")
+                continue
+            
+            # 모든 검증 통과! 행 추가 후 다음 단계로
             matrix.append(row)
+            i += 1
             
-        if is_valid:
-            return matrix 
-        else:
-            print("❌ 입력 형식 오류: 각 줄에 3개의 숫자를 공백으로 구분해 입력하세요. 다시 입력해주세요.")
+        except ValueError:
+            print(f"    ❌ [데이터 오류] 숫자가 아닌 값이 포함되어 있습니다. 다시 입력해주세요.")
+            
+    return matrix
 
 
 # ========= 프로그램 메인 함수 =========
