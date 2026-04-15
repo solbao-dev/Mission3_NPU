@@ -25,9 +25,7 @@ def get_3x3_input(name):
 
 # [수정] 라벨 정규화(표준화) 함수
 def normalize_label(label):
-    # 양쪽 공백을 없애고 소문자로 변환해서 비교하기 쉽게 만듦
     clean_label = str(label).strip().lower()
-    
     if clean_label == '+' or clean_label == 'cross':
         return 'Cross'
     elif clean_label == 'x':
@@ -44,17 +42,18 @@ def calculate_mac(filter_matrix, pattern_matrix):
             score += filter_matrix[i][j] * pattern_matrix[i][j]
     return score
 
-# [수정] MAC 연산 결과 비교 및 판정 함수
+# [수정] MAC 연산 결과 비교 및 판정 함수 (Epsilon 적용)
 def get_decision(sc_cross, sc_x):
-    if sc_cross > sc_x:
-        return "Cross"  # 표준 라벨 사용
-    elif sc_x > sc_cross:
-        return "X"      # 표준 라벨 사용
-    else:
+    epsilon = 1e-9
+    if abs(sc_cross - sc_x) < epsilon:
         return "Unknown"
+    
+    if sc_cross > sc_x:
+        return "Cross"
+    else:
+        return "X"
 
 # ========= 프로그램 메인 함수 =========
-# 모든 코드를 감싸는 main() 함수를 만들었어!
 def main():
     print("=== Mini NPU Simulator ===")
     print("[모드 선택]")
@@ -63,37 +62,29 @@ def main():
     
     choice = input("선택: ")
     
-    # 💡 첫 번째 조건: choice가 1일 때
     if choice == '1':
-        print("\n#----------------------------------------")
-        print("# [1] 필터 입력")
-        print("#----------------------------------------")
+        print("\n# [1] 필터 입력")
         filter_a = get_3x3_input("필터 A")
         filter_b = get_3x3_input("필터 B")
         
-        print("\n#----------------------------------------")
-        print("# [2] 패턴 입력")
-        print("#----------------------------------------")
+        print("\n# [2] 패턴 입력")
         pattern = get_3x3_input("패턴")
-        
-        print("\n#----------------------------------------")
-        print("# [3] MAC 결과")
-        print("#----------------------------------------")
         
         score_a = calculate_mac(filter_a, pattern)
         score_b = calculate_mac(filter_b, pattern)
         
-        print(f"A 점수: {float(score_a)}") 
+        print(f"\nA 점수: {float(score_a)}") 
         print(f"B 점수: {float(score_b)}")
         
-        if score_a > score_b:
+        decision = get_decision(score_a, score_b)
+        
+        if decision == "Cross":
             print("판정: A")
-        elif score_b > score_a:
+        elif decision == "X":
             print("판정: B")
         else:
             print("판정: 판정 불가 (동점)")
             
-    # 💡 두 번째 조건: choice가 2일 때 (위의 if choice == '1': 과 완벽히 세로줄이 맞아야 해!)
     elif choice == '2':
         try:
             with open('data.json', 'r') as f:
@@ -111,7 +102,7 @@ def main():
             for p_id, p_info in patterns.items():
                 total_count += 1
                 p_input = p_info['input']
-                p_expected = normalize_label(p_info['expected']) # 1. 정답 라벨을 Cross 또는 X로 표준화
+                p_expected = normalize_label(p_info['expected'])
                 
                 try:
                     parts = p_id.split("_") 
@@ -125,21 +116,20 @@ def main():
                     fail_cases.append(f"{p_id}: {e}")
                     continue
 
-                f_set = filters[size_key] # 2. 내부적으로 필터 키를 매칭할 때는 소문자 'cross'와 'x'로 JSON에 접근
+                f_set = filters[size_key]
                 sc_cross = calculate_mac(f_set['cross'], p_input)
                 sc_x = calculate_mac(f_set['x'], p_input)
 
+                # 성능 측정을 위한 10회 반복
                 start = time.time()
                 for _ in range(10):
-                    sc_cross = calculate_mac(f_set['cross'], p_input)
-                    sc_x = calculate_mac(f_set['x'], p_input)
+                    calculate_mac(f_set['cross'], p_input)
+                    calculate_mac(f_set['x'], p_input)
                 elapsed = (time.time() - start) / 10 * 1000 
                 
                 performance_stats.append((n_val, elapsed))
                 
-                decision = get_decision(sc_cross, sc_x) # 3. 판정 결과도 Cross 또는 X로 반환됨
-
-                # 표준화된 p_expected와 decision이 정확히 비교됨!
+                decision = get_decision(sc_cross, sc_x)
                 status = "PASS" if decision == p_expected else "FAIL"
                 
                 if status == "PASS": 
@@ -157,7 +147,8 @@ def main():
                 avg = sum(times_for_size) / len(times_for_size)
                 print(f"{sz}x{sz:<8} {avg:<15.4f} {sz*sz}")
 
-            print(f"\n# [4] 결과 요약\n총 테스트: {total_count}개 | 통과: {pass_count}개 | 실패: {len(fail_cases)}개")
+            print(f"\n# [4] 결과 요약")
+            print(f"총 테스트: {total_count}개 | 통과: {pass_count}개 | 실패: {len(fail_cases)}개")
             if fail_cases:
                 print("실패 케이스 목록:")
                 for fc in fail_cases: 
