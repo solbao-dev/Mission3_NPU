@@ -1,5 +1,6 @@
 import json
 import time
+from npu_core import normalize_label, calculate_mac, get_decision
 
 # [1] 키보드 입력받는 함수
 def get_3x3_input(name):
@@ -23,35 +24,6 @@ def get_3x3_input(name):
         else:
             print("❌ 입력 형식 오류: 각 줄에 3개의 숫자를 공백으로 구분해 입력하세요. 다시 입력해주세요.")
 
-# [수정] 라벨 정규화(표준화) 함수
-def normalize_label(label):
-    clean_label = str(label).strip().lower()
-    if clean_label == '+' or clean_label == 'cross':
-        return 'Cross'
-    elif clean_label == 'x':
-        return 'X'
-    else:
-        return 'Unknown'
-
-# [2] MAC 연산 함수
-def calculate_mac(filter_matrix, pattern_matrix):
-    score = 0
-    size = len(filter_matrix) 
-    for i in range(size):
-        for j in range(size):
-            score += filter_matrix[i][j] * pattern_matrix[i][j]
-    return score
-
-# [수정] MAC 연산 결과 비교 및 판정 함수 (Epsilon 적용)
-def get_decision(sc_cross, sc_x):
-    epsilon = 1e-9
-    if abs(sc_cross - sc_x) < epsilon:
-        return "Unknown"
-    
-    if sc_cross > sc_x:
-        return "Cross"
-    else:
-        return "X"
 
 # ========= 프로그램 메인 함수 =========
 def main():
