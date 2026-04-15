@@ -1,6 +1,7 @@
 import json
 import time
-from npu_core import normalize_label, calculate_mac, get_decision
+from core.npu_core import normalize_label, calculate_mac, get_decision
+from utils.reporter import print_performance, print_summary
 
 # [1] 키보드 입력받는 함수
 def get_3x3_input(name):
@@ -59,7 +60,7 @@ def main():
             
     elif choice == '2':
         try:
-            with open('data.json', 'r') as f:
+            with open('data/data.json', 'r') as f:
                 data = json.load(f)
             
             filters = data['filters']
@@ -111,20 +112,8 @@ def main():
                 
                 print(f"- {p_id} | 판정: {decision} | 정답: {p_expected} | {status}")
 
-            print("\n# [3] 성능 분석 (평균/10회)")
-            print(f"{'크기':<10} {'평균 시간(ms)':<15} {'연산 횟수(N²)'}")
-            unique_sizes = sorted(list(set([s[0] for s in performance_stats])))
-            for sz in unique_sizes:
-                times_for_size = [s[1] for s in performance_stats if s[0] == sz]
-                avg = sum(times_for_size) / len(times_for_size)
-                print(f"{sz}x{sz:<8} {avg:<15.4f} {sz*sz}")
-
-            print(f"\n# [4] 결과 요약")
-            print(f"총 테스트: {total_count}개 | 통과: {pass_count}개 | 실패: {len(fail_cases)}개")
-            if fail_cases:
-                print("실패 케이스 목록:")
-                for fc in fail_cases: 
-                    print(f"  - {fc}")
+            print_performance(performance_stats)
+            print_summary(total_count, pass_count, fail_cases)
 
         except FileNotFoundError:
             print("❌ data.json 파일이 없습니다.")
